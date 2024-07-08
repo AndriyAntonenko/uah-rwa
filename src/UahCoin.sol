@@ -85,6 +85,7 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
                           EXTERNAL FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
+  /// @inheritdoc IUahCoin
   function sendMintRequest(uint256 _amount) external onlyOwner returns (bytes32 requestId) {
     FunctionsRequest.Request memory req;
     req.addDONHostedSecrets(s_secretsSlotId, s_secretsVersion);
@@ -95,10 +96,14 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
     return reqId;
   }
 
+  /// @param _requestId The ID of the Chainlink Functions request
+  /// @return mintRequest The mint request
   function getMintRequest(bytes32 _requestId) external view returns (MintRequest memory) {
     return s_mintRequests[_requestId];
   }
 
+  /// @notice Returns latest the health factor result
+  /// @return healthFactor The health factor
   function getHealthFactor() external view returns (HealthFactor memory) {
     return s_healthFactor;
   }
