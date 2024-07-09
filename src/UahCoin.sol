@@ -91,7 +91,7 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
     external
     returns (bool isHealthy, TypesLib.HealthFactor memory healthFactor)
   {
-    if (msg.sender != i_healthFactorValidator) revert UahCoin__OnlyConfirmedValidator();
+    if (msg.sender != i_healthFactorValidator && msg.sender != owner()) revert UahCoin__OnlyConfirmedValidator();
 
     healthFactor = _calculateHealthFactor(totalSupply(), _approvedOffChainCollateral);
     isHealthy = s_healthFactor.value >= HEALTH_FACTOR_RATIO;

@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { IUahCoinHealthFactorValidator } from "../src/interfaces/IUahCoinHealthFactorValidator.sol";
 import { IUahCoin } from "../src/interfaces/IUahCoin.sol";
 
+import { UahCoin } from "../src/UahCoin.sol";
 import { UahCoinHealthFactorValidator } from "../src/UahCoinHealthFactorValidator.sol";
 import { UahCoinBaseTest } from "./base/UahCoinBase.t.sol";
 
@@ -100,6 +101,14 @@ contract UahCoinHealthFactorValidatorTest is UahCoinBaseTest {
       abi.encodeWithSelector(UahCoinHealthFactorValidator.UahCoinHealthFactorValidator__FuctionError.selector, err)
     );
     uahCoinHealthFactorValidator.handleOracleFulfillment(requestId, response, err);
+    vm.stopPrank();
+  }
+
+  function test_validateHealthFactor_reverts_whenSenderIsNotConfirmedValidator() public {
+    address notValidator = makeAddr("NOT_VALIDATOR");
+    vm.startPrank(notValidator);
+    vm.expectRevert(abi.encodeWithSelector(UahCoin.UahCoin__OnlyConfirmedValidator.selector));
+    uahCoin.validateHealthFactor(1);
     vm.stopPrank();
   }
 }
