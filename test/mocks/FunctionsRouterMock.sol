@@ -9,18 +9,15 @@ import { FunctionsResponse } from "@chainlink/contracts/functions/dev/v1_0_0/lib
 contract FunctionsRouterMock is IFunctionsRouter {
   error FunctionsRouterMock__NotImplemented();
 
-  function sendRequest(
-    uint64 subscriptionId,
-    bytes calldata data,
-    uint16 dataVersion,
-    uint32 callbackGasLimit,
-    bytes32 donId
-  )
-    external
-    pure
-    returns (bytes32)
-  {
-    return keccak256(abi.encodePacked(subscriptionId, data, dataVersion, callbackGasLimit, donId));
+  bytes32 public s_nextMockedRequestId;
+
+  constructor() {
+    s_nextMockedRequestId = bytes32(uint256(1));
+  }
+
+  function sendRequest(uint64, bytes memory, uint16, uint32, bytes32) external returns (bytes32 requestId) {
+    requestId = s_nextMockedRequestId;
+    s_nextMockedRequestId = bytes32(uint256(s_nextMockedRequestId) + 1);
   }
 
   function getAllowListId() external pure returns (bytes32) {

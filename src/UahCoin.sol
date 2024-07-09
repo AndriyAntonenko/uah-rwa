@@ -7,6 +7,7 @@ import { FunctionsRequest } from "@chainlink/contracts/functions/dev/v1_0_0/libr
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IUahCoin } from "./interfaces/IUahCoin.sol";
+import { TypesLib } from "./libraries/TypesLib.sol";
 
 contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   using FunctionsRequest for FunctionsRequest.Request;
@@ -18,6 +19,7 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   error UahCoin__HealthFactorTooLow(bytes32 mintRequestId);
   error UahCoin__FunctionError(bytes errorMessage);
   error UahCoin__InvalidRequestId(bytes32 requestId);
+  error UahCoin__OnlyConfirmedValidator();
 
   /*//////////////////////////////////////////////////////////////
                               CONSTANTS
@@ -34,32 +36,18 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
 
   uint64 public immutable i_subscriptionId;
   bytes32 public immutable i_donId;
-
-  /*//////////////////////////////////////////////////////////////
-                                TYPES
-  //////////////////////////////////////////////////////////////*/
-
-  struct MintRequest {
-    uint256 amount;
-    address requester;
-  }
-
-  struct HealthFactor {
-    uint256 value;
-    uint256 totalSupply;
-    uint256 totalCollateral;
-    uint64 lastUpdated;
-  }
+  address public immutable i_healthFactorValidator;
 
   /*//////////////////////////////////////////////////////////////
                                 STATE
   //////////////////////////////////////////////////////////////*/
 
+  address public s_confirmedValidator;
   string public s_getOffChainCollateralSourceCode;
   uint8 private s_secretsSlotId;
   uint64 private s_secretsVersion;
-  HealthFactor private s_healthFactor;
-  mapping(bytes32 => MintRequest) private s_mintRequests;
+  TypesLib.HealthFactor private s_healthFactor;
+  mapping(bytes32 => TypesLib.MintRequest) private s_mintRequests;
 
   constructor(
     address _confirmedOwner,
@@ -68,7 +56,8 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
     bytes32 _donId,
     string memory _getOffChainCollateralSourceCode,
     uint8 _secretsSlotId,
-    uint64 _secretsVersion
+    uint64 _secretsVersion,
+    address _healthFactorValidator
   )
     ConfirmedOwner(_confirmedOwner)
     FunctionsClient(_functionRouter)
@@ -76,6 +65,7 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   {
     i_subscriptionId = _subscriptionId;
     i_donId = _donId;
+    i_healthFactorValidator = _healthFactorValidator;
     s_getOffChainCollateralSourceCode = _getOffChainCollateralSourceCode;
     s_secretsSlotId = _secretsSlotId;
     s_secretsVersion = _secretsVersion;
@@ -92,19 +82,33 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
     req.initializeRequestForInlineJavaScript(s_getOffChainCollateralSourceCode);
 
     bytes32 reqId = _sendRequest(req.encodeCBOR(), i_subscriptionId, FUNCTION_CALLBACK_GAS_LIMIT, i_donId);
-    s_mintRequests[reqId] = MintRequest({ amount: _amount, requester: msg.sender });
+    s_mintRequests[reqId] = TypesLib.MintRequest({ amount: _amount, requester: msg.sender });
     return reqId;
+  }
+
+  /// @inheritdoc IUahCoin
+  function validateHealthFactor(uint256 _approvedOffChainCollateral)
+    external
+    returns (bool isHealthy, TypesLib.HealthFactor memory healthFactor)
+  {
+    if (msg.sender != i_healthFactorValidator) revert UahCoin__OnlyConfirmedValidator();
+
+    healthFactor = _calculateHealthFactor(totalSupply(), _approvedOffChainCollateral);
+    isHealthy = s_healthFactor.value >= HEALTH_FACTOR_RATIO;
+    s_healthFactor = healthFactor;
+
+    emit HealthFactorUpdated(s_healthFactor.value >= HEALTH_FACTOR_RATIO, s_healthFactor.value);
   }
 
   /// @param _requestId The ID of the Chainlink Functions request
   /// @return mintRequest The mint request
-  function getMintRequest(bytes32 _requestId) external view returns (MintRequest memory) {
+  function getMintRequest(bytes32 _requestId) external view returns (TypesLib.MintRequest memory) {
     return s_mintRequests[_requestId];
   }
 
   /// @notice Returns latest the health factor result
   /// @return healthFactor The health factor
-  function getHealthFactor() external view returns (HealthFactor memory) {
+  function getHealthFactor() external view returns (TypesLib.HealthFactor memory) {
     return s_healthFactor;
   }
 
@@ -128,10 +132,11 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
 
   function _fulfillMintRequest(bytes32 _requestId, bytes memory _response) internal {
     uint256 accountBalance = _decodeMintFunctionResponse(_response);
-    MintRequest memory mintRequest = s_mintRequests[_requestId];
+    TypesLib.MintRequest memory mintRequest = s_mintRequests[_requestId];
     if (mintRequest.amount == 0) revert UahCoin__InvalidRequestId(_requestId);
 
-    HealthFactor memory newHealthFactor = _calculateHealthFactorWithAdjustedAmount(mintRequest.amount, accountBalance);
+    TypesLib.HealthFactor memory newHealthFactor =
+      _calculateHealthFactorWithAdjustedAmount(mintRequest.amount, accountBalance);
 
     if (newHealthFactor.value < HEALTH_FACTOR_RATIO) revert UahCoin__HealthFactorTooLow(_requestId);
     s_healthFactor = newHealthFactor;
@@ -148,7 +153,7 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   )
     internal
     view
-    returns (HealthFactor memory)
+    returns (TypesLib.HealthFactor memory)
   {
     uint256 totalSupply = totalSupply();
     return _calculateHealthFactor(totalSupply + _adjustedAmount, _accountBalance);
@@ -160,11 +165,11 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   )
     internal
     view
-    returns (HealthFactor memory)
+    returns (TypesLib.HealthFactor memory)
   {
     uint256 value = _totalCollateral * HEALTH_FACTOR_PRECISION / _totalSupply;
 
-    return HealthFactor({
+    return TypesLib.HealthFactor({
       value: value,
       totalSupply: _totalSupply,
       totalCollateral: _totalCollateral,

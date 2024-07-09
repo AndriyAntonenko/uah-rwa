@@ -1,45 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { Test } from "forge-std/Test.sol";
-import { IFunctionsRouter } from "@chainlink/contracts/functions/dev/v1_0_0/interfaces/IFunctionsRouter.sol";
-
 import { UahCoin } from "../src/UahCoin.sol";
-import { Deploy } from "../script/Deploy.s.sol";
+import { TypesLib } from "../src/libraries/TypesLib.sol";
 
-import { FunctionsRouterMock } from "./mocks/FunctionsRouterMock.sol";
+import { UahCoinBaseTest } from "./base/UahCoinBase.t.sol";
 
-contract UahCoinTest is Test {
-  address public immutable UAH_COIN_OWNER = makeAddr("UAH_COIN_OWNER");
-  uint64 public constant CHAINLINK_SUBSCRIPTION_ID = 1;
-  bytes32 public constant CHAINLINK_DON_ID = bytes32(uint256(1));
-  uint8 public constant CHAINLINK_SECRET_SLOT_ID = 1;
-  uint64 public constant CHAINLINK_SECRETS_VERSION = 1;
-  string public constant GET_OFF_CHAIN_COLLATERAL_SOURCE_CODE = "function getOffChainCollateralInfo() { return 1; }";
-
-  IFunctionsRouter public functionsRouterMock;
-  UahCoin public uahCoin;
-
-  function setUp() public {
-    Deploy deploy = new Deploy();
-
-    functionsRouterMock = IFunctionsRouter(address(new FunctionsRouterMock()));
-    uahCoin = deploy.deployUahCoin(
-      UAH_COIN_OWNER,
-      address(functionsRouterMock),
-      CHAINLINK_SUBSCRIPTION_ID,
-      CHAINLINK_DON_ID,
-      GET_OFF_CHAIN_COLLATERAL_SOURCE_CODE,
-      CHAINLINK_SECRET_SLOT_ID,
-      CHAINLINK_SECRETS_VERSION
-    );
-  }
-
+contract UahCoinTest is UahCoinBaseTest {
   function test_setUp_successful() public view {
     assertEq(uahCoin.owner(), UAH_COIN_OWNER);
     assertEq(uahCoin.i_subscriptionId(), CHAINLINK_SUBSCRIPTION_ID);
     assertEq(uahCoin.i_donId(), CHAINLINK_DON_ID);
     assertEq(uahCoin.s_getOffChainCollateralSourceCode(), GET_OFF_CHAIN_COLLATERAL_SOURCE_CODE);
+    assertEq(uahCoin.i_healthFactorValidator(), address(uahCoinHealthFactorValidator));
+    assertEq(address(uahCoinHealthFactorValidator.i_uahCoin()), address(uahCoin));
   }
 
   function test_sendMintRequest_successful() public {
@@ -48,7 +22,7 @@ contract UahCoinTest is Test {
     vm.prank(UAH_COIN_OWNER);
     bytes32 requestId = uahCoin.sendMintRequest(amount);
 
-    UahCoin.MintRequest memory mintRequest = uahCoin.getMintRequest(requestId);
+    TypesLib.MintRequest memory mintRequest = uahCoin.getMintRequest(requestId);
 
     assertEq(mintRequest.amount, amount);
     assertEq(mintRequest.requester, UAH_COIN_OWNER);
@@ -68,7 +42,7 @@ contract UahCoinTest is Test {
     vm.prank(address(functionsRouterMock));
     uahCoin.handleOracleFulfillment(requestId, response, err);
 
-    UahCoin.HealthFactor memory healthFactor = uahCoin.getHealthFactor();
+    TypesLib.HealthFactor memory healthFactor = uahCoin.getHealthFactor();
     assertEq(uahCoin.totalSupply(), totalSupplyBefore + mintAmount);
     assertEq(uahCoin.balanceOf(address(uahCoin)), mintAmount);
 
