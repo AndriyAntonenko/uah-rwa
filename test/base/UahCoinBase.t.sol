@@ -38,7 +38,8 @@ contract UahCoinBaseTest is Test {
       CHAINLINK_DON_ID,
       GET_OFF_CHAIN_COLLATERAL_SOURCE_CODE,
       CHAINLINK_SECRET_SLOT_ID,
-      CHAINLINK_SECRETS_VERSION
+      CHAINLINK_SECRETS_VERSION,
+      address(0)
     );
 
     defaultMintAmount = 100 * 10 ** uahCoin.decimals();

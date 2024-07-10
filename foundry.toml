@@ -8,6 +8,7 @@ remappings = [
   "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/src/v0.8",
 ]
 via-ir = true
+fs_permissions = [{ access = "read", path = "./functions" }]
 
 [fmt]
 bracket_spacing = true

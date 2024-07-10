@@ -30,11 +30,10 @@ coverage-report :; forge coverage --ir-minimum --report debug > coverage-report.
 slither :; slither . --config-file slither.config.json
 
 deploy :; forge script script/Deploy.s.sol \
-	--interactives 1 \
+	--account deployer \
 	--rpc-url ${RPC_URL} \
 	--legacy \
 	--verify \
-	--etherscan-api-key ${ETHERSCAN_API_KEY} \
 	--broadcast
 
 aderyn :; aderyn .

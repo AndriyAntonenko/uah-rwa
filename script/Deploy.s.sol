@@ -19,6 +19,7 @@ contract Deploy is Script {
     uint256 secretSlotId = vm.envUint("CHAINLINK_SECRET_SLOT_ID");
     uint256 secretsVersion = vm.envUint("CHAINLINK_SECRETS_VERSION");
     uint256 validationInterval = vm.envUint("UAH_COIN_VALIDATION_INTERVAL");
+    address deployerAddress = vm.envAddress("DEPLOYER_ADDRESS");
 
     vm.startBroadcast();
     deployUahCoin(
@@ -30,7 +31,8 @@ contract Deploy is Script {
       donId,
       getOffChainCollateralSourceCode,
       uint8(secretSlotId),
-      uint64(secretsVersion)
+      uint64(secretsVersion),
+      deployerAddress
     );
     vm.stopBroadcast();
   }
@@ -44,14 +46,20 @@ contract Deploy is Script {
     bytes32 _donId,
     string memory _getOffChainCollateralSourceCode,
     uint8 _secretSlotId,
-    uint64 _secretsVersion
+    uint64 _secretsVersion,
+    address _deployerAddress
   )
     public
     returns (UahCoin, UahCoinHealthFactorValidator)
   {
-    uint64 nonce = vm.getNonce(address(this));
-    address uahCoinAddress = _contractAddressFrom(address(this), nonce);
-    address uahCoinHealthFactorValidatorAddress = _contractAddressFrom(address(this), nonce + 1);
+    // If the deployer address is not set, use the current contract address. This is useful for testing.
+    if (_deployerAddress == address(0)) {
+      _deployerAddress = address(this);
+    }
+
+    uint64 nonce = vm.getNonce(_deployerAddress);
+    address uahCoinAddress = vm.computeCreateAddress(_deployerAddress, nonce);
+    address uahCoinHealthFactorValidatorAddress = vm.computeCreateAddress(_deployerAddress, nonce + 1);
 
     UahCoin uahCoin = new UahCoin(
       _owner,
@@ -77,38 +85,5 @@ contract Deploy is Script {
     );
 
     return (uahCoin, uahCoinHealthFactorValidator);
-  }
-
-  /// @dev Computes the address of a contract deployed by the given address and nonce (via CREATE opcode)
-  /// @param deployer The address of the deployer
-  /// @param nonce The nonce of the deployer
-  /// @return The address of the contract
-  function _contractAddressFrom(address deployer, uint256 nonce) private pure returns (address) {
-    if (nonce == 0x00) {
-      return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), deployer, bytes1(0x80))))));
-    }
-    if (nonce <= 0x7f) {
-      return address(
-        uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), deployer, bytes1(uint8(nonce))))))
-      );
-    }
-    if (nonce <= 0xff) {
-      return address(
-        uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd7), bytes1(0x94), deployer, bytes1(0x81), uint8(nonce)))))
-      );
-    }
-    if (nonce <= 0xffff) {
-      return address(
-        uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd8), bytes1(0x94), deployer, bytes1(0x82), uint16(nonce)))))
-      );
-    }
-    if (nonce <= 0xffffff) {
-      return address(
-        uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd9), bytes1(0x94), deployer, bytes1(0x83), uint24(nonce)))))
-      );
-    }
-    return address(
-      uint160(uint256(keccak256(abi.encodePacked(bytes1(0xda), bytes1(0x94), deployer, bytes1(0x84), uint32(nonce)))))
-    );
   }
 }
