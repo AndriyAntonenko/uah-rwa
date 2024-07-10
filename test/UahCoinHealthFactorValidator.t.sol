@@ -9,6 +9,15 @@ import { UahCoinHealthFactorValidator } from "../src/UahCoinHealthFactorValidato
 import { UahCoinBaseTest } from "./base/UahCoinBase.t.sol";
 
 contract UahCoinHealthFactorValidatorTest is UahCoinBaseTest {
+  function test_updateGetOffChainCollateralSourceCode_successful() public {
+    string memory newSourceCode = "function getOffChainCollateralInfo() { return 2; }";
+    vm.expectEmit(true, false, false, false);
+    emit IUahCoinHealthFactorValidator.GetOffChainCollateralSourceCodeUpdated();
+    vm.prank(UAH_COIN_HEALTH_FACTOR_VALIDATOR_OWNER);
+    uahCoinHealthFactorValidator.updateGetOffChainCollateralSourceCode(newSourceCode);
+    assertEq(uahCoinHealthFactorValidator.s_getOffChainCollateralSourceCode(), newSourceCode);
+  }
+
   function test_sendValidationRequest_successful() public {
     vm.startPrank(UAH_COIN_VALIDATOR);
     vm.expectEmit(true, true, false, false);

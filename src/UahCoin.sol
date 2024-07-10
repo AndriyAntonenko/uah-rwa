@@ -76,6 +76,12 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   //////////////////////////////////////////////////////////////*/
 
   /// @inheritdoc IUahCoin
+  function updateGetOffChainCollateralSourceCode(string memory _sourceCode) external onlyOwner {
+    s_getOffChainCollateralSourceCode = _sourceCode;
+    emit GetOffChainCollateralSourceCodeUpdated();
+  }
+
+  /// @inheritdoc IUahCoin
   function sendMintRequest(uint256 _amount) external onlyOwner returns (bytes32 requestId) {
     FunctionsRequest.Request memory req;
     req.addDONHostedSecrets(s_secretsSlotId, s_secretsVersion);

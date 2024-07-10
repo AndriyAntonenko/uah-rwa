@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { UahCoin } from "../src/UahCoin.sol";
+import { IUahCoin } from "../src/interfaces/IUahCoin.sol";
 import { TypesLib } from "../src/libraries/TypesLib.sol";
 
 import { UahCoinBaseTest } from "./base/UahCoinBase.t.sol";
@@ -14,6 +15,15 @@ contract UahCoinTest is UahCoinBaseTest {
     assertEq(uahCoin.s_getOffChainCollateralSourceCode(), GET_OFF_CHAIN_COLLATERAL_SOURCE_CODE);
     assertEq(uahCoin.i_healthFactorValidator(), address(uahCoinHealthFactorValidator));
     assertEq(address(uahCoinHealthFactorValidator.i_uahCoin()), address(uahCoin));
+  }
+
+  function test_updateGetOffChainCollateralSourceCode_successful() public {
+    string memory newSourceCode = "function getOffChainCollateralInfo() { return 2; }";
+    vm.expectEmit(true, false, false, false);
+    emit IUahCoin.GetOffChainCollateralSourceCodeUpdated();
+    vm.prank(UAH_COIN_OWNER);
+    uahCoin.updateGetOffChainCollateralSourceCode(newSourceCode);
+    assertEq(uahCoin.s_getOffChainCollateralSourceCode(), newSourceCode);
   }
 
   function test_sendMintRequest_successful() public {

@@ -68,6 +68,12 @@ contract UahCoinHealthFactorValidator is ConfirmedOwner, FunctionsClient, IUahCo
                           EXTERNAL FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
+  /// @inheritdoc IUahCoinHealthFactorValidator
+  function updateGetOffChainCollateralSourceCode(string memory _sourceCode) external onlyOwner {
+    s_getOffChainCollateralSourceCode = _sourceCode;
+    emit GetOffChainCollateralSourceCodeUpdated();
+  }
+
   function setValidationInterval(uint64 _validationInterval) external onlyOwner {
     s_validationInterval = _validationInterval;
     emit ValidationIntervalHasBeenChanged(_validationInterval);

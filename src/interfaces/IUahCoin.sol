@@ -8,6 +8,7 @@ import { TypesLib } from "../libraries/TypesLib.sol";
 
 interface IUahCoin is IERC20, IERC20Metadata {
   event HealthFactorUpdated(bool indexed isHealthy, uint256 indexed healthFactor);
+  event GetOffChainCollateralSourceCodeUpdated();
 
   /// @notice Sends a Chainlink Functions request to mint UahCoin tokens
   /// @param _amount The amount of UahCoin tokens to mint
@@ -23,4 +24,9 @@ interface IUahCoin is IERC20, IERC20Metadata {
   function validateHealthFactor(uint256 _approvedOffChainCollateral)
     external
     returns (bool isHealthy, TypesLib.HealthFactor memory healthFactor);
+
+  /// @notice updates the off-chain collateral source code
+  /// @dev Only the owner can call this method. This method must emit a GetOffChainCollateralSourceCodeUpdated event
+  /// @param _sourceCode The new off-chain collateral source code
+  function updateGetOffChainCollateralSourceCode(string memory _sourceCode) external;
 }
