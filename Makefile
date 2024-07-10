@@ -34,6 +34,7 @@ deploy :; forge script script/Deploy.s.sol \
 	--rpc-url ${RPC_URL} \
 	--legacy \
 	--verify \
+	--etherscan-api-key ${ETHERSCAN_API_KEY} \
 	--broadcast
 
 aderyn :; aderyn .

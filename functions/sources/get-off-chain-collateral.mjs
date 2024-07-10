@@ -22,4 +22,4 @@ const account = monoBankClientInfo.data.accounts.find(
   (account) => account.iban === secrets.iban
 );
 
-return Functions.encodeUint256(BigInt(account.balance) * precision);
+return Functions.encodeUint256(BigInt(account.balance) * COLLATERAL_PRECISION);
