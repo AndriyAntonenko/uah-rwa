@@ -9,13 +9,16 @@
   },
   "scripts": {
     "simulate:off-chain-collateral": "set -o allexport && source .env && set +o allexport && node ./functions/simulators/get-off-chain-collateral.simulator.mjs",
-    "solhint": "solhint --config .solhint.json \"src/*.sol\""
+    "solhint": "solhint --config .solhint.json \"src/*.sol\"",
+    "upload-secrets": "node ./functions/upload-secrets.mjs"
   },
   "dependencies": {
     "@chainlink/functions-toolkit": "^0.2.8",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.2",
+    "inquirer": "^10.0.1",
     "solhint": "^5.0.1",
-    "solhint-plugin-chainlink-solidity": "npm:@chainlink/solhint-plugin-chainlink-solidity@^1.0.1",
-    "viem": "2.17.0"
+    "solhint-plugin-chainlink-solidity": "npm:@chainlink/solhint-plugin-chainlink-solidity@^1.0.1"
   },
   "repository": {
     "type": "git",

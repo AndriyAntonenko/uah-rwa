@@ -18,7 +18,7 @@ contract Deploy is Script {
     string memory getOffChainCollateralSourceCode = vm.readFile("functions/sources/get-off-chain-collateral.mjs");
     uint256 secretSlotId = vm.envUint("CHAINLINK_SECRET_SLOT_ID");
     uint256 secretsVersion = vm.envUint("CHAINLINK_SECRETS_VERSION");
-    uint256 validationInterval = vm.envUint("VALIDATION_INTERVAL");
+    uint256 validationInterval = vm.envUint("UAH_COIN_VALIDATION_INTERVAL");
 
     vm.startBroadcast();
     deployUahCoin(

@@ -30,7 +30,7 @@ coverage-report :; forge coverage --ir-minimum --report debug > coverage-report.
 slither :; slither . --config-file slither.config.json
 
 deploy :; forge script script/Deploy.s.sol \
-	--private-key ${DEPLOYER_PRIVATE_KEY} \
+	--interactives 1 \
 	--rpc-url ${RPC_URL} \
 	--legacy \
 	--verify \
