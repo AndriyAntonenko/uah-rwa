@@ -120,4 +120,17 @@ contract UahCoinHealthFactorValidatorTest is UahCoinBaseTest {
     uahCoin.validateHealthFactor(1);
     vm.stopPrank();
   }
+
+  function test_secretsUpdate_successful() public {
+    uint8 slotId = 13;
+    uint64 version = 13;
+
+    vm.expectEmit(true, true, false, false);
+    emit IUahCoinHealthFactorValidator.SecretsUpdated(slotId, version);
+    vm.prank(UAH_COIN_HEALTH_FACTOR_VALIDATOR_OWNER);
+    uahCoinHealthFactorValidator.updateSecrets(slotId, version);
+
+    assertEq(uahCoinHealthFactorValidator.s_secretsSlotId(), slotId);
+    assertEq(uahCoinHealthFactorValidator.s_secretsVersion(), version);
+  }
 }

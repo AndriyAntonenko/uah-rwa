@@ -44,8 +44,8 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
 
   address public s_confirmedValidator;
   string public s_getOffChainCollateralSourceCode;
-  uint8 private s_secretsSlotId;
-  uint64 private s_secretsVersion;
+  uint8 public s_secretsSlotId;
+  uint64 public s_secretsVersion;
   TypesLib.HealthFactor private s_healthFactor;
   mapping(bytes32 => TypesLib.MintRequest) private s_mintRequests;
 
@@ -74,6 +74,13 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   /*//////////////////////////////////////////////////////////////
                           EXTERNAL FUNCTIONS
   //////////////////////////////////////////////////////////////*/
+
+  /// @inheritdoc IUahCoin
+  function updateSecrets(uint8 _slotId, uint64 _version) external onlyOwner {
+    s_secretsSlotId = _slotId;
+    s_secretsVersion = _version;
+    emit SecretsUpdated(_slotId, _version);
+  }
 
   /// @inheritdoc IUahCoin
   function updateGetOffChainCollateralSourceCode(string memory _sourceCode) external onlyOwner {

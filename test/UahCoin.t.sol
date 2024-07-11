@@ -110,4 +110,17 @@ contract UahCoinTest is UahCoinBaseTest {
     assertEq(uahCoin.balanceOf(to), defaultMintAmount);
     assertEq(uahCoin.balanceOf(address(uahCoin)), 0);
   }
+
+  function test_secretsUpdate_successful() public {
+    uint8 slotId = 13;
+    uint64 version = 13;
+
+    vm.expectEmit(true, true, false, false);
+    emit IUahCoin.SecretsUpdated(slotId, version);
+    vm.prank(UAH_COIN_OWNER);
+    uahCoin.updateSecrets(slotId, version);
+
+    assertEq(uahCoin.s_secretsSlotId(), slotId);
+    assertEq(uahCoin.s_secretsVersion(), version);
+  }
 }

@@ -10,6 +10,7 @@ interface IUahCoin is IERC20, IERC20Metadata {
   event HealthFactorUpdated(bool indexed isHealthy, uint256 indexed healthFactor);
   event GetOffChainCollateralSourceCodeUpdated();
   event Withdrawn(address indexed to, uint256 indexed amount);
+  event SecretsUpdated(uint8 indexed slotId, uint64 indexed version);
 
   /// @notice Sends a Chainlink Functions request to mint UahCoin tokens
   /// @param _amount The amount of UahCoin tokens to mint
@@ -36,4 +37,10 @@ interface IUahCoin is IERC20, IERC20Metadata {
   /// @param _to The address to withdraw the UahCoin tokens to
   /// @param _amount The amount of UahCoin tokens to withdraw
   function withdraw(address _to, uint256 _amount) external;
+
+  /// @notice updates the chainlink function secrets slot ID and version
+  /// @dev Only the owner can call this method. This method MUST emit a SecretsUpdated event
+  /// @param _slotId The new chainlink function secrets slot ID
+  /// @param _version The new chainlink function secrets version
+  function updateSecrets(uint8 _slotId, uint64 _version) external;
 }

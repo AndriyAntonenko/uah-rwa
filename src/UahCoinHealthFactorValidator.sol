@@ -34,8 +34,8 @@ contract UahCoinHealthFactorValidator is ConfirmedOwner, FunctionsClient, IUahCo
   //////////////////////////////////////////////////////////////*/
 
   string public s_getOffChainCollateralSourceCode;
-  uint8 private s_secretsSlotId;
-  uint64 private s_secretsVersion;
+  uint8 public s_secretsSlotId;
+  uint64 public s_secretsVersion;
   uint64 public s_validationInterval;
 
   mapping(address validator => uint64 lastValidation) public s_lastValidation;
@@ -67,6 +67,13 @@ contract UahCoinHealthFactorValidator is ConfirmedOwner, FunctionsClient, IUahCo
   /*//////////////////////////////////////////////////////////////
                           EXTERNAL FUNCTIONS
   //////////////////////////////////////////////////////////////*/
+
+  /// @inheritdoc IUahCoinHealthFactorValidator
+  function updateSecrets(uint8 _slotId, uint64 _version) external {
+    s_secretsSlotId = _slotId;
+    s_secretsVersion = _version;
+    emit SecretsUpdated(_slotId, _version);
+  }
 
   /// @inheritdoc IUahCoinHealthFactorValidator
   function updateGetOffChainCollateralSourceCode(string memory _sourceCode) external onlyOwner {
