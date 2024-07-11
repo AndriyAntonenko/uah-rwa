@@ -29,6 +29,10 @@ coverage-report :; forge coverage --ir-minimum --report debug > coverage-report.
 
 slither :; slither . --config-file slither.config.json
 
+setup-deployer :; cast wallet import --interactive deployer
+
+deployer-address :; cast wallet address --account deployer
+
 deploy :; forge script script/Deploy.s.sol \
 	--account deployer \
 	--rpc-url ${RPC_URL} \

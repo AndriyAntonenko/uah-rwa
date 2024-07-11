@@ -93,6 +93,12 @@ contract UahCoin is ERC20, IUahCoin, ConfirmedOwner, FunctionsClient {
   }
 
   /// @inheritdoc IUahCoin
+  function withdraw(address _to, uint256 _amount) external onlyOwner {
+    _transfer(address(this), _to, _amount);
+    emit Withdrawn(_to, _amount);
+  }
+
+  /// @inheritdoc IUahCoin
   function validateHealthFactor(uint256 _approvedOffChainCollateral)
     external
     returns (bool isHealthy, TypesLib.HealthFactor memory healthFactor)

@@ -9,6 +9,7 @@ import { TypesLib } from "../libraries/TypesLib.sol";
 interface IUahCoin is IERC20, IERC20Metadata {
   event HealthFactorUpdated(bool indexed isHealthy, uint256 indexed healthFactor);
   event GetOffChainCollateralSourceCodeUpdated();
+  event Withdrawn(address indexed to, uint256 indexed amount);
 
   /// @notice Sends a Chainlink Functions request to mint UahCoin tokens
   /// @param _amount The amount of UahCoin tokens to mint
@@ -29,4 +30,10 @@ interface IUahCoin is IERC20, IERC20Metadata {
   /// @dev Only the owner can call this method. This method must emit a GetOffChainCollateralSourceCodeUpdated event
   /// @param _sourceCode The new off-chain collateral source code
   function updateGetOffChainCollateralSourceCode(string memory _sourceCode) external;
+
+  /// @notice Withdraw minted UahCoin tokens to the specified address
+  /// @dev Only the owner can call this method. This method MUST emit a Withdrawn event
+  /// @param _to The address to withdraw the UahCoin tokens to
+  /// @param _amount The amount of UahCoin tokens to withdraw
+  function withdraw(address _to, uint256 _amount) external;
 }

@@ -98,4 +98,16 @@ contract UahCoinTest is UahCoinBaseTest {
     vm.expectRevert(abi.encodeWithSelector(UahCoin.UahCoin__HealthFactorTooLow.selector, requestId));
     uahCoin.handleOracleFulfillment(requestId, response, err);
   }
+
+  function test_withdraw_successful() public withMint(defaultMintAmount) {
+    address to = makeAddr("to");
+
+    vm.expectEmit(true, true, false, false);
+    emit IUahCoin.Withdrawn(to, defaultMintAmount);
+    vm.prank(UAH_COIN_OWNER);
+    uahCoin.withdraw(to, defaultMintAmount);
+
+    assertEq(uahCoin.balanceOf(to), defaultMintAmount);
+    assertEq(uahCoin.balanceOf(address(uahCoin)), 0);
+  }
 }
