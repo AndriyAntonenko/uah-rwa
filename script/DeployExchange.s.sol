@@ -8,11 +8,13 @@ import { IUahCoin } from "../src/interfaces/IUahCoin.sol";
 import { UahCoinNativeExchange } from "../src/exchange/UahCoinNativeExchange.sol";
 
 contract DeployExchange is Script {
+  error DeployExchange__UahCoinNotDeployed();
+
   function run() public {
     address uahCoin = DevOpsTools.get_most_recent_deployment("UahCoin", block.chainid);
 
     if (uahCoin == address(0)) {
-      revert("UahCoin not deployed");
+      revert DeployExchange__UahCoinNotDeployed();
     }
 
     address exchangeOwner = vm.envAddress("EXCHANGE_OWNER");
