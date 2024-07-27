@@ -22,10 +22,19 @@ library TypesLib {
                             EXCHANGE TYPES
   //////////////////////////////////////////////////////////////*/
 
-  struct BuyRequest {
-    uint256 minAmountOut;
-    address buyer;
-    uint256 tokenAmount;
+  enum RequestType {
+    Unknown, // aka default value, that should never be assigned, but could be used for checking if value is set
+    BuyWithAmountIn,
+    BuyWithAmountOut,
+    SellWithAmountIn,
+    SellWithAmountOut
+  }
+
+  struct ExchangeRequest {
+    RequestType requestType;
     address exchangeToken;
+    uint256 amount;
+    address requester;
+    uint256 limit;
   }
 }

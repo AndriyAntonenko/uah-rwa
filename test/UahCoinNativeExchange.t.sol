@@ -103,11 +103,12 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     uint256 exchangeBalanceAfter = exchangeToken.balanceOf(address(exchange));
     uint256 buyerBalanceAfter = exchangeToken.balanceOf(BUYER);
 
-    TypesLib.BuyRequest memory buyRequest = exchange.getBuyRequest(requestId);
-    assertEq(buyRequest.minAmountOut, minAmountOut);
-    assertEq(buyRequest.buyer, BUYER);
-    assertEq(buyRequest.tokenAmount, tokenAmount);
-    assertEq(buyRequest.exchangeToken, address(exchangeToken));
+    TypesLib.ExchangeRequest memory exchangeRequest = exchange.getExchangeRequest(requestId);
+    assertEq(exchangeRequest.limit, minAmountOut);
+    assertEq(exchangeRequest.requester, BUYER);
+    assertEq(exchangeRequest.amount, tokenAmount);
+    assertEq(exchangeRequest.exchangeToken, address(exchangeToken));
+    // assertEq(exchangeRequest.requestType, TypesLib.RequestType.BuyWithAmountIn);
     assertEq(exchangeBalanceAfter, exchangeBalanceBefore + tokenAmount);
     assertEq(buyerBalanceAfter, buyerBalanceBefore - tokenAmount);
     assertEq(exchange.getUahCoinLiquidity(), uahCoinExchangeBalance - minAmountOut);
@@ -154,7 +155,7 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     exchange.makeBuyWithAmountInRequest(address(exchangeToken), 1e18, BUYER, minAmountOut);
   }
 
-  function test_fulfillBuyRequest_successful()
+  function test_fulfillBuyWithAmountIn_successful()
     public
     withMockExchangeToken
     withMint(UAH_COIN_EXCHANGE_BALANCE)
@@ -190,7 +191,7 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     assertEq(exchange.getUahCoinLiquidity(), exchangeUahCoinBalanceBefore - minAmountOut);
   }
 
-  function test_fulfillBuyRequest_reverts_whenRequestIdIsUnknown()
+  function test_fulfillBuyWithAmountIn_reverts_whenRequestIdIsUnknown()
     public
     withMockExchangeToken
     withMint(UAH_COIN_EXCHANGE_BALANCE)
@@ -204,7 +205,7 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     exchange.handleOracleFulfillment(requestId, abi.encode(usdToUahExchangeRate), "");
   }
 
-  function test_fulfillBuyRequest_makeRefund_whenErrorReturnedByFunction()
+  function test_fulfillBuyWithAmountIn_makeRefund_whenErrorReturnedByFunction()
     public
     withMockExchangeToken
     withMint(UAH_COIN_EXCHANGE_BALANCE)
@@ -218,7 +219,7 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     vm.prank(BUYER);
     bytes32 requestId = exchange.makeBuyWithAmountInRequest(address(exchangeToken), tokenAmount, BUYER, minAmountOut);
 
-    TypesLib.BuyRequest memory buyRequest = exchange.getBuyRequest(requestId);
+    TypesLib.ExchangeRequest memory exchangeRequest = exchange.getExchangeRequest(requestId);
 
     bytes memory err = "error";
 
@@ -232,12 +233,12 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     uint256 buyerExchangeTokenBalanceAfter = exchangeToken.balanceOf(BUYER);
     uint256 exchangeUahCoinLiquidityAfter = exchange.getUahCoinLiquidity();
 
-    assertEq(exchangeExchangeTokenBalanceAfter, exchangeExchangeTokenBalanceBefore - buyRequest.tokenAmount);
-    assertEq(buyerExchangeTokenBalanceAfter, buyerExchangeTokenBalanceBefore + buyRequest.tokenAmount);
-    assertEq(exchangeUahCoinLiquidityAfter, exchangeUahCoinLiquidityBefore + buyRequest.minAmountOut);
+    assertEq(exchangeExchangeTokenBalanceAfter, exchangeExchangeTokenBalanceBefore - exchangeRequest.amount);
+    assertEq(buyerExchangeTokenBalanceAfter, buyerExchangeTokenBalanceBefore + exchangeRequest.amount);
+    assertEq(exchangeUahCoinLiquidityAfter, exchangeUahCoinLiquidityBefore + exchangeRequest.limit);
   }
 
-  function test_fulfillBuyRequest_makeRefund_whenUahAmountIsLessThenMinAmountOut()
+  function test_fulfillBuyWithAmountIn_makeRefund_whenUahAmountIsLessThenMinAmountOut()
     public
     withMockExchangeToken
     withMint(UAH_COIN_EXCHANGE_BALANCE)
@@ -253,7 +254,7 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     vm.prank(BUYER);
     bytes32 requestId = exchange.makeBuyWithAmountInRequest(address(exchangeToken), tokenAmount, BUYER, minAmountOut);
 
-    TypesLib.BuyRequest memory buyRequest = exchange.getBuyRequest(requestId);
+    TypesLib.ExchangeRequest memory exchangeRequest = exchange.getExchangeRequest(requestId);
 
     uint256 exchangeExchangeTokenBalanceBefore = exchangeToken.balanceOf(address(exchange));
     uint256 buyerExchangeTokenBalanceBefore = exchangeToken.balanceOf(BUYER);
@@ -265,9 +266,9 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     uint256 buyerExchangeTokenBalanceAfter = exchangeToken.balanceOf(BUYER);
     uint256 exchangeUahCoinLiquidityAfter = exchange.getUahCoinLiquidity();
 
-    assertEq(exchangeExchangeTokenBalanceAfter, exchangeExchangeTokenBalanceBefore - buyRequest.tokenAmount);
-    assertEq(buyerExchangeTokenBalanceAfter, buyerExchangeTokenBalanceBefore + buyRequest.tokenAmount);
-    assertEq(exchangeUahCoinLiquidityAfter, exchangeUahCoinLiquidityBefore + buyRequest.minAmountOut);
+    assertEq(exchangeExchangeTokenBalanceAfter, exchangeExchangeTokenBalanceBefore - exchangeRequest.amount);
+    assertEq(buyerExchangeTokenBalanceAfter, buyerExchangeTokenBalanceBefore + exchangeRequest.amount);
+    assertEq(exchangeUahCoinLiquidityAfter, exchangeUahCoinLiquidityBefore + exchangeRequest.limit);
   }
 
   /*//////////////////////////////////////////////////////////////

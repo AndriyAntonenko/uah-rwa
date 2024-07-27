@@ -45,7 +45,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
 
   /// @notice This tokens are used to buy or sell UAH Coin
   mapping(address token => AggregatorV3Interface usdPriceFeed) public s_exchangeTokenToUsdPriceFeed;
-  mapping(bytes32 requestId => TypesLib.BuyRequest) private s_requestIdToBuyRequest;
+  mapping(bytes32 requestId => TypesLib.ExchangeRequest) private s_requestIdToExchangeRequest;
 
   /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -58,6 +58,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
   error UahCoinNativeExchange__ZeroValueProvided();
   error UahCoinNativeExchange__ExchangeTokenTransferFailed();
   error UahCoinNativeExchange__UnknownRequestId();
+  error UahCoinNativeExchange__UnknownRequestType();
 
   /*//////////////////////////////////////////////////////////////
                               MODIFIERS
@@ -130,11 +131,12 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
     req.initializeRequestForInlineJavaScript(s_getUsdExcahngeRateSourceCode);
 
     bytes32 reqId = _sendRequest(req.encodeCBOR(), i_subscriptionId, FUNCTION_CALLBACK_GAS_LIMIT, i_donId);
-    s_requestIdToBuyRequest[reqId] = TypesLib.BuyRequest({
-      minAmountOut: _minAmountOut,
-      buyer: _buyer,
-      tokenAmount: _tokenAmount,
-      exchangeToken: _exchangeToken
+    s_requestIdToExchangeRequest[reqId] = TypesLib.ExchangeRequest({
+      limit: _minAmountOut,
+      requester: _buyer,
+      amount: _tokenAmount,
+      exchangeToken: _exchangeToken,
+      requestType: TypesLib.RequestType.BuyWithAmountIn
     });
     s_lockedUahCoin += _minAmountOut;
 
@@ -152,8 +154,8 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
   }
 
   /// @notice Get the buy request by the given request ID
-  function getBuyRequest(bytes32 _requestId) external view returns (TypesLib.BuyRequest memory) {
-    return s_requestIdToBuyRequest[_requestId];
+  function getExchangeRequest(bytes32 _requestId) external view returns (TypesLib.ExchangeRequest memory) {
+    return s_requestIdToExchangeRequest[_requestId];
   }
 
   /// @inheritdoc IUahCoinNativeExchange
@@ -183,33 +185,57 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
   }
 
   function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
-    _filfillBuyRequest(requestId, response, err);
+    _filfillExchangeRequest(requestId, response, err);
   }
 
-  function _filfillBuyRequest(bytes32 _requestId, bytes memory _response, bytes memory _err) internal {
-    TypesLib.BuyRequest memory buyRequest = s_requestIdToBuyRequest[_requestId];
+  function _filfillExchangeRequest(bytes32 _requestId, bytes memory _response, bytes memory _err) internal {
+    TypesLib.ExchangeRequest memory exchangeRequest = s_requestIdToExchangeRequest[_requestId];
 
-    if (buyRequest.buyer == address(0)) {
+    if (exchangeRequest.requestType == TypesLib.RequestType.Unknown) {
+      revert UahCoinNativeExchange__UnknownRequestId();
+    }
+
+    if (exchangeRequest.requestType == TypesLib.RequestType.BuyWithAmountIn) {
+      _fulfillBuyWithAmountInRequest(_requestId, exchangeRequest, _response, _err);
+    } else {
+      revert UahCoinNativeExchange__UnknownRequestType();
+    }
+  }
+
+  function _fulfillBuyWithAmountInRequest(
+    bytes32 _requestId,
+    TypesLib.ExchangeRequest memory _exchangeRequest,
+    bytes memory _response,
+    bytes memory _err
+  )
+    internal
+  {
+    address buyer = _exchangeRequest.requester;
+    address exchangeToken = _exchangeRequest.exchangeToken;
+    uint256 tokenAmount = _exchangeRequest.amount;
+    uint256 minUahAmountOut = _exchangeRequest.limit;
+
+    if (buyer == address(0)) {
       // If the buyer is zero address, the request is not exist
       revert UahCoinNativeExchange__UnknownRequestId();
     }
 
-    s_lockedUahCoin -= buyRequest.minAmountOut;
+    s_lockedUahCoin -= minUahAmountOut;
 
     if (_err.length != 0) {
       // If there is an error, unlock the UAH Coin and send the tokens back to the buyer
-      IERC20(buyRequest.exchangeToken).transfer(buyRequest.buyer, buyRequest.tokenAmount);
+      IERC20(exchangeToken).transfer(buyer, tokenAmount);
       emit ExchangeRefunded(_requestId, RefundReason.FunctionFailed, _err);
       return;
     }
 
     uint256 usdToUahExchangeRate = _decodeFunctionResponse(_response);
-    uint256 exchangeRateForToken = _calculateExchangeRateForToken(buyRequest.exchangeToken, usdToUahExchangeRate);
-    uint256 uahAmount = buyRequest.tokenAmount * exchangeRateForToken / 10 ** PRICE_DECIMALS;
+    uint256 exchangeRateForToken = _calculateExchangeRateForToken(exchangeToken, usdToUahExchangeRate);
+    uint256 uahAmount = tokenAmount * exchangeRateForToken / 10 ** PRICE_DECIMALS;
 
-    if (uahAmount < buyRequest.minAmountOut) {
+    if (uahAmount < minUahAmountOut) {
       // If the amount is less than the minimum amount, unlock the UAH Coin and send the tokens back to the buyer
-      IERC20(buyRequest.exchangeToken).transfer(buyRequest.buyer, buyRequest.tokenAmount);
+      IERC20(exchangeToken).transfer(buyer, tokenAmount);
       emit ExchangeRefunded(_requestId, RefundReason.LessThanMinimumAmount, "");
       return;
     }
@@ -220,7 +246,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
       uahAmount = uahCoinBalance;
     }
 
-    i_uahCoin.transfer(buyRequest.buyer, uahAmount);
+    i_uahCoin.transfer(buyer, uahAmount);
   }
 
   function _decodeFunctionResponse(bytes memory _response) internal pure returns (uint256 usdToUahExchangeRate) {

@@ -13,12 +13,29 @@ interface IUahCoinNativeExchange {
   /// In both cases, buyer will receive back his exchange tokens and event will be emitted for off-chain processing
   event ExchangeRefunded(bytes32 indexed requestId, RefundReason indexed reason, bytes data);
 
+  /// @notice Create request for selling UAHc with exact amount of UAHc tokens to sell
+  /// @dev This function fill send request to Chainlink Function in order to find out the real USD/UAH rate
+  /// @param _exchangeToken Address of exchange token to receive
+  /// @param _uahAmountToSell Amount of UAHc to sell
+  /// @param _seller Address of seller
+  /// @param _minAmountOut Minimum amount of exchange token to receive
+  /// @return requestId id of the Chainlink Function request
+  // function makeSellWithAmountInRequest(
+  //   address _exchangeToken,
+  //   uint256 _uahAmountToSell,
+  //   address _seller,
+  //   uint256 _minAmountOut
+  // )
+  //   external
+  //   returns (bytes32 requestId);
+
   /// @notice Create request for buying UAHc with exact amount of exchange token
   /// @dev This function fill send request to Chainlink Function in order to find out the real USD/UAH rate
   /// @param _exchangeToken Address of exchange token
   /// @param _tokenAmount Amount of exchange token
   /// @param _buyer Address of buyer
   /// @param _minAmountOut Minimum amount of UAHc to receive
+  /// @return requestId id of the Chainlink Function request
   function makeBuyWithAmountInRequest(
     address _exchangeToken,
     uint256 _tokenAmount,
