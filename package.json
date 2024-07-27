@@ -9,6 +9,7 @@
   },
   "scripts": {
     "simulate:off-chain-collateral": "set -o allexport && source .env && set +o allexport && node ./functions/simulators/get-off-chain-collateral.simulator.mjs",
+    "simulate:usd-rate": "node ./functions/simulators/get-usd-exchange-rate.simulator.mjs",
     "solhint": "solhint --config .solhint.json \"src/*.sol\"",
     "upload-secrets": "node ./functions/upload-secrets.mjs"
   },

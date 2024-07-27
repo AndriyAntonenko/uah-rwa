@@ -5,10 +5,15 @@ libs = ["lib"]
 solc = "0.8.24"
 remappings = [
   "@openzeppelin/contracts=lib/openzeppelin-contracts/contracts",
-  "@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/src/v0.8",
+  "@chainlink/contracts=lib/chainlink-brownie-contracts/contracts/src/v0.8",
+  "foundry-devops=lib/foundry-devops/src",
 ]
 via-ir = true
-fs_permissions = [{ access = "read", path = "./functions" }]
+fs_permissions = [
+  { access = "read", path = "./functions" },
+  { access = "read", path = "./broadcast" },
+  { access = "read", path = "./reports" },
+]
 
 [fmt]
 bracket_spacing = true

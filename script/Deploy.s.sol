@@ -9,8 +9,8 @@ import { IUahCoin } from "../src/interfaces/IUahCoin.sol";
 
 contract Deploy is Script {
   function run() public {
-    address uahCointOwner = vm.envAddress("UAH_COIN_OWNER");
-    address uahCointHealthFactorValidatorOwner = vm.envAddress("UAH_COIN_HEALTH_FACTOR_VALIDATOR_OWNER");
+    address uahCoinOwner = vm.envAddress("UAH_COIN_OWNER");
+    address uahCoinHealthFactorValidatorOwner = vm.envAddress("UAH_COIN_HEALTH_FACTOR_VALIDATOR_OWNER");
 
     address functionRouter = vm.envAddress("CHAINLINK_FUNCTION_ROUTER");
     uint256 subscriptionId = vm.envUint("CHAINLINK_SUBSCRIPTION_ID");
@@ -23,8 +23,8 @@ contract Deploy is Script {
 
     vm.startBroadcast();
     deployUahCoin(
-      uahCointOwner,
-      uahCointHealthFactorValidatorOwner,
+      uahCoinOwner,
+      uahCoinHealthFactorValidatorOwner,
       uint64(validationInterval),
       functionRouter,
       uint64(subscriptionId),

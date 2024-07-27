@@ -19,4 +19,4 @@ const rates = currencies.data.find(
 const rate = (rates.rateBuy + rates.rateSell) / 2;
 const rateInt = Math.round((rate + Number.EPSILON) * 100);
 
-return Functions.encodeUint256(BigInt(rateRounded) * EXCHANGE_RATE_PRECISION);
+return Functions.encodeUint256(BigInt(rateInt) * EXCHANGE_RATE_PRECISION);

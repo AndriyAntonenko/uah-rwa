@@ -25,7 +25,7 @@ contract UahCoinBaseTest is Test {
   UahCoin public uahCoin;
   UahCoinHealthFactorValidator public uahCoinHealthFactorValidator;
 
-  function setUp() public {
+  function setUp() public virtual {
     Deploy deploy = new Deploy();
 
     functionsRouterMock = new FunctionsRouterMock();

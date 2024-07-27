@@ -17,4 +17,15 @@ library TypesLib {
     uint256 totalCollateral;
     uint64 lastUpdated;
   }
+
+  /*//////////////////////////////////////////////////////////////
+                            EXCHANGE TYPES
+  //////////////////////////////////////////////////////////////*/
+
+  struct BuyRequest {
+    uint256 minAmountOut;
+    address buyer;
+    uint256 tokenAmount;
+    address exchangeToken;
+  }
 }
