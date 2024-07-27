@@ -86,6 +86,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
     s_secretsVersion = _secretsVersion;
   }
 
+  /// @inheritdoc IUahCoinNativeExchange
   function addNewExchangeToken(address _exchangeToken, address _usdPriceFeed) external onlyOwner {
     if (_exchangeToken == address(0) || _usdPriceFeed == address(0)) {
       revert UahCoinNativeExchange__ZeroAddressProvided();
@@ -145,7 +146,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
     return reqId;
   }
 
-  /// @notice Get the UAH Coin liquidity (UAH Coin balance - locked UAH Coin)
+  /// @inheritdoc IUahCoinNativeExchange
   function getUahCoinLiquidity() external view returns (uint256) {
     return _getUahCoinLiquidity();
   }
@@ -155,9 +156,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
     return s_requestIdToBuyRequest[_requestId];
   }
 
-  /// @notice Get the exchange rate for the given token by knowing the USD/UAH exchange rate (off-chain data)
-  /// @param _exchangeToken The token to get the exchange rate for
-  /// @param _usdToUahExchangeRate The USD/UAH exchange rate (1 USD = _usdToUahExchangeRate UAH)
+  /// @inheritdoc IUahCoinNativeExchange
   function getExchangeRateForToken(
     address _exchangeToken,
     uint256 _usdToUahExchangeRate
@@ -169,6 +168,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativ
     return _calculateExchangeRateForToken(_exchangeToken, _usdToUahExchangeRate);
   }
 
+  /// @inheritdoc IUahCoinNativeExchange
   function estimateBuyAmountOut(
     address _exchangeToken,
     uint256 _tokenAmount,
