@@ -15,3 +15,7 @@ This project is implementation of the Stablecoin directly pegged to UAH. As the 
  ```
  make deploy
  ```
+
+## Deploy Exchange
+
+Coming soon...
