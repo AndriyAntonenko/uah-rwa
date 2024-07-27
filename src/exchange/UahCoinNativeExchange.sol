@@ -11,19 +11,13 @@ import { TypesLib } from "../libraries/TypesLib.sol";
 import { OracleLib } from "../libraries/OracleLib.sol";
 
 import { IUahCoin } from "../interfaces/IUahCoin.sol";
+import { IUahCoinNativeExchange } from "../interfaces/IUahCoinNativeExchange.sol";
 
 /// @title UahCoinNativeExchange
 /// @notice This contract is responsible for exchanging UAH Coin for other tokens. This contract will use Chainlink
 /// Functions to get the UAH/USD exchange rate.
-contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient {
+contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient, IUahCoinNativeExchange {
   using FunctionsRequest for FunctionsRequest.Request;
-
-  enum RefundReason {
-    FunctionFailed,
-    LessThanMinimumAmount
-  }
-
-  event ExchangeRefunded(bytes32 requestId, RefundReason reason, bytes data);
 
   /*//////////////////////////////////////////////////////////////
                               CONSTANTS
@@ -99,6 +93,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient {
     s_exchangeTokenToUsdPriceFeed[_exchangeToken] = AggregatorV3Interface(_usdPriceFeed);
   }
 
+  /// @inheritdoc IUahCoinNativeExchange
   function makeBuyWithAmountInRequest(
     address _exchangeToken,
     uint256 _tokenAmount,
@@ -125,7 +120,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient {
     }
 
     uint256 currentLiquidity = _getUahCoinLiquidity();
-    if (currentLiquidity < _minAmountOut) {
+    if (currentLiquidity == 0 || currentLiquidity < _minAmountOut) {
       revert UahCoinNativeExchange__NotEnoughExchangeLiquidity(currentLiquidity);
     }
 
@@ -188,10 +183,10 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient {
   }
 
   function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
-    _filfillRequest(requestId, response, err);
+    _filfillBuyRequest(requestId, response, err);
   }
 
-  function _filfillRequest(bytes32 _requestId, bytes memory _response, bytes memory _err) internal {
+  function _filfillBuyRequest(bytes32 _requestId, bytes memory _response, bytes memory _err) internal {
     TypesLib.BuyRequest memory buyRequest = s_requestIdToBuyRequest[_requestId];
 
     if (buyRequest.buyer == address(0)) {
@@ -228,7 +223,7 @@ contract UahCoinNativeExchange is ConfirmedOwner, FunctionsClient {
     i_uahCoin.transfer(buyRequest.buyer, uahAmount);
   }
 
-  function _decodeFunctionResponse(bytes memory _response) internal view returns (uint256 usdToUahExchangeRate) {
+  function _decodeFunctionResponse(bytes memory _response) internal pure returns (uint256 usdToUahExchangeRate) {
     usdToUahExchangeRate = abi.decode(_response, (uint256));
   }
 

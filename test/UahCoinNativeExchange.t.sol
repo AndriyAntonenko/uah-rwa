@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { MockV3Aggregator } from "@chainlink/contracts/tests/MockV3Aggregator.sol";
 
 import { UahCoinNativeExchange } from "../src/exchange/UahCoinNativeExchange.sol";
+import { IUahCoinNativeExchange } from "../src/interfaces/IUahCoinNativeExchange.sol";
 import { TypesLib } from "../src/libraries/TypesLib.sol";
 import { DeployExchange } from "../script/DeployExchange.s.sol";
 import { UahCoinBaseTest } from "./base/UahCoinBase.t.sol";
@@ -82,7 +83,7 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     exchange.getExchangeRateForToken(address(exchangeToken), 1e18);
   }
 
-  function test_makeBuyRequest_successful()
+  function test_makeBuyWithAmountInRequest_successful()
     public
     withMockExchangeToken
     withMint(UAH_COIN_EXCHANGE_BALANCE)
@@ -110,6 +111,47 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     assertEq(exchangeBalanceAfter, exchangeBalanceBefore + tokenAmount);
     assertEq(buyerBalanceAfter, buyerBalanceBefore - tokenAmount);
     assertEq(exchange.getUahCoinLiquidity(), uahCoinExchangeBalance - minAmountOut);
+  }
+
+  function test_makeBuyWithAmountInRequest_reverts_whenExchangeTokenNotSupported() public {
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        UahCoinNativeExchange.UahCoinNativeExchange__ExchangeTokenNotSupported.selector, address(exchangeToken)
+      )
+    );
+    exchange.makeBuyWithAmountInRequest(address(exchangeToken), 1e18, BUYER, 1e18);
+  }
+
+  function test_makeBuyWithAmountInRequest_reverts_whenMinAmountOutIsTooLow()
+    public
+    withMockExchangeToken
+    withMint(UAH_COIN_EXCHANGE_BALANCE)
+    withExchangeBalance
+    withExchangeTokenApprove
+  {
+    uint256 minAmountOut = MINIMUM_BUY_AMOUNT - 1;
+    vm.prank(BUYER);
+    vm.expectRevert(
+      abi.encodeWithSelector(UahCoinNativeExchange.UahCoinNativeExchange__LessThanMinimumAmount.selector, minAmountOut)
+    );
+    exchange.makeBuyWithAmountInRequest(address(exchangeToken), 1e18, BUYER, minAmountOut);
+  }
+
+  function test_makeBuyWithAmountInRequest_reverts_whenNotEnoughLiquidity()
+    public
+    withMockExchangeToken
+    withMint(UAH_COIN_EXCHANGE_BALANCE)
+    withExchangeBalance
+    withExchangeTokenApprove
+  {
+    uint256 minAmountOut = exchange.getUahCoinLiquidity() + 1;
+    vm.prank(BUYER);
+    vm.expectRevert(
+      abi.encodeWithSelector(
+        UahCoinNativeExchange.UahCoinNativeExchange__NotEnoughExchangeLiquidity.selector, exchange.getUahCoinLiquidity()
+      )
+    );
+    exchange.makeBuyWithAmountInRequest(address(exchangeToken), 1e18, BUYER, minAmountOut);
   }
 
   function test_fulfillBuyRequest_successful()
@@ -146,6 +188,86 @@ contract UahCoinNativeExchangeTest is UahCoinBaseTest {
     assertEq(exchangeUahCoinBalanceAfter, exchangeUahCoinBalanceBefore - minAmountOut);
     assertEq(buyerUahCoinBalanceAfter, buyerUahCoinBalanceBefore + minAmountOut);
     assertEq(exchange.getUahCoinLiquidity(), exchangeUahCoinBalanceBefore - minAmountOut);
+  }
+
+  function test_fulfillBuyRequest_reverts_whenRequestIdIsUnknown()
+    public
+    withMockExchangeToken
+    withMint(UAH_COIN_EXCHANGE_BALANCE)
+    withExchangeBalance
+    withExchangeTokenApprove
+  {
+    uint256 usdToUahExchangeRate = 40 * 1e18; // 1 USD = 40 UAH
+    bytes32 requestId = bytes32(0);
+    vm.expectRevert(abi.encodeWithSelector(UahCoinNativeExchange.UahCoinNativeExchange__UnknownRequestId.selector));
+    vm.prank(address(functionsRouterMock));
+    exchange.handleOracleFulfillment(requestId, abi.encode(usdToUahExchangeRate), "");
+  }
+
+  function test_fulfillBuyRequest_makeRefund_whenErrorReturnedByFunction()
+    public
+    withMockExchangeToken
+    withMint(UAH_COIN_EXCHANGE_BALANCE)
+    withExchangeBalance
+    withExchangeTokenApprove
+  {
+    uint256 usdToUahExchangeRate = 40 * 1e18; // 1 USD = 40 UAH
+    uint256 tokenAmount = BUYER_EXCHANGE_TOKEN_BALANCE;
+    uint256 minAmountOut = exchange.estimateBuyAmountOut(address(exchangeToken), tokenAmount, usdToUahExchangeRate);
+
+    vm.prank(BUYER);
+    bytes32 requestId = exchange.makeBuyWithAmountInRequest(address(exchangeToken), tokenAmount, BUYER, minAmountOut);
+
+    TypesLib.BuyRequest memory buyRequest = exchange.getBuyRequest(requestId);
+
+    bytes memory err = "error";
+
+    uint256 exchangeExchangeTokenBalanceBefore = exchangeToken.balanceOf(address(exchange));
+    uint256 buyerExchangeTokenBalanceBefore = exchangeToken.balanceOf(BUYER);
+    uint256 exchangeUahCoinLiquidityBefore = exchange.getUahCoinLiquidity();
+    vm.prank(address(functionsRouterMock));
+    exchange.handleOracleFulfillment(requestId, abi.encode(usdToUahExchangeRate), err);
+
+    uint256 exchangeExchangeTokenBalanceAfter = exchangeToken.balanceOf(address(exchange));
+    uint256 buyerExchangeTokenBalanceAfter = exchangeToken.balanceOf(BUYER);
+    uint256 exchangeUahCoinLiquidityAfter = exchange.getUahCoinLiquidity();
+
+    assertEq(exchangeExchangeTokenBalanceAfter, exchangeExchangeTokenBalanceBefore - buyRequest.tokenAmount);
+    assertEq(buyerExchangeTokenBalanceAfter, buyerExchangeTokenBalanceBefore + buyRequest.tokenAmount);
+    assertEq(exchangeUahCoinLiquidityAfter, exchangeUahCoinLiquidityBefore + buyRequest.minAmountOut);
+  }
+
+  function test_fulfillBuyRequest_makeRefund_whenUahAmountIsLessThenMinAmountOut()
+    public
+    withMockExchangeToken
+    withMint(UAH_COIN_EXCHANGE_BALANCE)
+    withExchangeBalance
+    withExchangeTokenApprove
+  {
+    uint256 usdToUahExpectedExchangeRate = 40 * 1e18; // 1 USD = 40 UAH
+    uint256 usdToUahActualExchangeRate = 39 * 1e18; // 1 USD = 50 UAH
+    uint256 tokenAmount = BUYER_EXCHANGE_TOKEN_BALANCE;
+    uint256 minAmountOut =
+      exchange.estimateBuyAmountOut(address(exchangeToken), tokenAmount, usdToUahExpectedExchangeRate);
+
+    vm.prank(BUYER);
+    bytes32 requestId = exchange.makeBuyWithAmountInRequest(address(exchangeToken), tokenAmount, BUYER, minAmountOut);
+
+    TypesLib.BuyRequest memory buyRequest = exchange.getBuyRequest(requestId);
+
+    uint256 exchangeExchangeTokenBalanceBefore = exchangeToken.balanceOf(address(exchange));
+    uint256 buyerExchangeTokenBalanceBefore = exchangeToken.balanceOf(BUYER);
+    uint256 exchangeUahCoinLiquidityBefore = exchange.getUahCoinLiquidity();
+    vm.prank(address(functionsRouterMock));
+    exchange.handleOracleFulfillment(requestId, abi.encode(usdToUahActualExchangeRate), "");
+
+    uint256 exchangeExchangeTokenBalanceAfter = exchangeToken.balanceOf(address(exchange));
+    uint256 buyerExchangeTokenBalanceAfter = exchangeToken.balanceOf(BUYER);
+    uint256 exchangeUahCoinLiquidityAfter = exchange.getUahCoinLiquidity();
+
+    assertEq(exchangeExchangeTokenBalanceAfter, exchangeExchangeTokenBalanceBefore - buyRequest.tokenAmount);
+    assertEq(buyerExchangeTokenBalanceAfter, buyerExchangeTokenBalanceBefore + buyRequest.tokenAmount);
+    assertEq(exchangeUahCoinLiquidityAfter, exchangeUahCoinLiquidityBefore + buyRequest.minAmountOut);
   }
 
   /*//////////////////////////////////////////////////////////////
